@@ -1,10 +1,10 @@
 package com.jpmc.midascore.component;
 
-import com.jpmc.midascore.entity.UserRecord;
-import com.jpmc.midascore.repository.UserRepository;
-import com.jpmc.midascore.foundation.Transaction;
 import com.jpmc.midascore.entity.TransactionRecord;
+import com.jpmc.midascore.entity.UserRecord;
+import com.jpmc.midascore.foundation.Transaction;
 import com.jpmc.midascore.repository.TransactionRecordRepository;
+import com.jpmc.midascore.repository.UserRepository;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -24,13 +24,13 @@ public class DatabaseConduit {
     public void save(Transaction transaction) {
         UserRecord sender = queryUser(transaction.getSenderId());
         UserRecord recipient = queryUser(transaction.getRecipientId());
-        TransactionRecord transactionRecord = new TransactionRecord(sender, recipient, transaction.getAmount());
+        TransactionRecord transactionRecord = new TransactionRecord(sender, recipient, transaction.getAmount(),
+                transaction.getIncentive());
         transactionRecordRepository.save(transactionRecord);
-
 
         sender.setBalance(sender.getBalance() - transaction.getAmount());
         save(sender);
-        recipient.setBalance(recipient.getBalance() + transaction.getAmount());
+        recipient.setBalance(recipient.getBalance() + transaction.getAmount() + transaction.getIncentive());
         save(recipient);
     }
 
@@ -49,15 +49,16 @@ public class DatabaseConduit {
         return true;
     }
 
-    public UserRecord queryUser(long id) {
-        return userRepository.findById(id);
+    public UserRecord queryUser(Long userId) {
+        return userRepository.findById(userId).orElse(null);
     }
 
-    public float queryUserBalance(long id) {
-        UserRecord userRecord = queryUser(id);
+    public float queryUserBalance(Long userId) {
+        UserRecord userRecord = queryUser(userId);
         if (userRecord == null) {
-            return -1;
+            return 0;
+        } else {
+            return userRecord.getBalance();
         }
-        return userRecord.getBalance();
     }
 }
